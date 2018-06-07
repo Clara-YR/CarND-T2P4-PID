@@ -11,25 +11,20 @@ PID::PID() {}
 
 PID::~PID() {}
 
-void PID::Init(double new_Kp, double new_Ki, double new_Kd) {
-    Kp = new_Kp;
-    Ki = new_Ki;
-    Kd = new_Kd;
+void PID::Init(double Kp, double Ki, double Kd) {
+    PID::Kp = Kp;
+    PID::Ki = Ki;
+    PID::Kd = Kd;
 }
 
 void PID::UpdateError(double cte) {
-
-
-    // proportiional error
-    p_error = Kp * cte ;
-    // integral error
-    i_error = Ki * int_cte;
-    // derivative error
-    d_error = Kd * diff_cte;
+    p_error = cte;
+    i_error += cte;
+    d_error = cte - prev_cte;
 }
 
 double PID::TotalError() {
-
-    return p_error + i_error + d_error;
+    double total_error = Kp * p_error + Ki * i_error + Kd * d_error;
+    return total_error;
 }
 

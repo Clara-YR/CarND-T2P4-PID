@@ -34,14 +34,12 @@ int main()
 
   PID pid;
   // TODO: Initialize the pid variable.
-  // initialize all the target parameters to 0.0
-  //std::vector<double> K(3, 0.0);
+
+  // initial all pid variables to 0
   pid.Init(0.0, 0.0, 0.0);
-  pid.prev_cte = 0;
-  pid.int_cte = 0;
-  pid.x = 0;
-  pid.y = 0;
-  pid.orientation = 0;
+  pid.p_error = 0.0;
+  pid.i_error = 0.0;
+  pid.prev_cte = 0.0;
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -65,70 +63,62 @@ int main()
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
-          std::cout << "cte = " << cte << std::endl;
-          std::cout << "prev_cte = " << pid.prev_cte << std::endl;
-          std::cout << "int_cte = " << pid.int_cte << std::endl;
-          std::cout << "diff_cte = " << pid.diff_cte << std::endl;
-          std::cout << "speed = " << speed << std::endl;
-          std::cout << "angle = " << angle << std::endl;
-          pid.x += speed * cos(pid.orientation);
-          pid.y += speed * sin(pid.orientation);
-          pid.orientation += angle;
 
-          double best_err = cte;
-          pid.diff_cte = cte - pid.prev_cte;
-          pid.prev_cte = cte;
-          pid.int_cte += cte;
+          // update p_error, i_error, d_error given the new crosstrack error
+          // thoeses errors won't be changed in the TWIDDLE loop
+          pid.UpdateError(cte);
 
-          // take the error at present as the initial value of best error
-
-
-          // create vectors to store the modified coefficients
-          std::vector<double> dK(3, 1.0);
-
+          // create vector K = [Kp, Ki, Kd] and dK = [d_Kp, d_Ki, d_Kd]
+          // in order to use for loop insread of apply twiddle to the 3 coefficients respectively
           std::vector<double> K{pid.Kp, pid.Ki, pid.Kd};
+          std::vector<double> dK{1,1,1};
 
-          // TWIDDLE to find the best Kp, Ki, Kd
-          double tol = 0.2;  // 0.2
+          // set the initialization of the best error as
+          // the prediction of the cte after a unit time
+          // with the steering angle unchanged
+          double best_error = fabs(cte + speed * sin(angle));
+
+          double tol = 0.2;
           int it = 0;
+          // TWIDDLE loop here
+          while((dK[0] + dK[1] + dK[2]) > tol) {
+            //std::cout << "Iterations " << it << ", best error = " << best_error << std::endl;
+            for(int i=0; i<K.size(); ++i) {
 
-          while (it < 10) {
-            std::cout << "Iteration " << it << ", best error = " << best_err << std::endl;
-            for(int i=0; i<3; ++i) {
               K[i] += dK[i];
               pid.Init(K[0], K[1], K[2]);
-              pid.UpdateError(cte);
-              double err = pid.TotalError();
+              double error = fabs(pid.TotalError());
+              if(error == 0) {
+                break;
+              }
 
-              if(err < best_err) {
-                best_err = err;
+              if(error < best_error) {
+                best_error = error;
                 dK[i] *= 1.1;
-                std::cout << "K+dK, dK*1.1, \t";
-              } else {
-                K[i] -= 2*dK[i];
-                pid.UpdateError(cte);
+              }
+              else{
+                K[i] -= 2 * dK[i];
+                pid.Init(K[0], K[1], K[2]);
+                error = fabs(pid.TotalError());
 
-                if(err < best_err) {
-                  best_err = err;
+                if (error < best_error) {
+                  best_error = error;
                   dK[i] *= 1.1;
-                  std::cout << "K-dK, dK*1.1, \t";
-                } else {
+                }
+                else{
                   K[i] += dK[i];
+                  pid.Init(K[0], K[1], K[2]);
                   dK[i] *= 0.9;
-                  std::cout << "dK*0.9, try K+/- dK again, \t";
                 }
               }
-              std::cout << "K[" << i <<"] = " << K[i] << std::endl;
-            }
+            }  // for loop end
             it += 1;
           }
+          //std::cout << "After " << it << " Iterations:" << std::endl;
+          //std::cout << "K = [" << K[0] << ",\t" << K[1] << ",\t" << K[0] << "]" << std::endl;
 
-          std::cout << "After " << it << "iteration, ";
-          std::cout << "modified Kp = " << K[0] << ", Ki = " << K[1] << ", Kd = " << K[2] << std::endl;
-          pid.Init(K[0], K[1], K[2]);
-          pid.UpdateError(cte);
-          steer_value = pid.TotalError();
-
+          steer_value = angle - pid.TotalError();
+          
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 
