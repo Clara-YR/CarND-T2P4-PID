@@ -2,8 +2,9 @@
 
 [image0]: ./ReadmeImages/plot.png "Flowchar"
 [image1]: ./ReadmeImages/PID.png "yaw_rate!=0"
-[image2]: ./ReadmeImages/twiddle.png 
-[image3]: ./ReadmeImages/ParticleWeights.png 
+[image2]: ./ReadmeImages/PID_formula.png "yaw_rate!=0"
+[image3]: ./ReadmeImages/twiddle.png 
+[image4]: ./ReadmeImages/vehicle_coordinate.png 
 
 
 # PID Controller
@@ -22,18 +23,23 @@ From the plot above we can see that:
 
 - For PID controller, besides the current CTE and the temporal derivative of CTE, it's also proportional to the integral or the sum of all the CTE you ever observed.
 
-## `PID.cpp`
+## PID Calculation
 
 ![alt text][image1]
+![alt text][image2]
 
 ## Twiddle
 
 This picture shows how twiddle works.
 
-![alt text][image2]
+![alt text][image3]
 
 I set the initialization of the best error equals to the cte after a unit time if the steering angle kept unchanged.
 
-Note: in twiddle method, error is the horizontal distance to the reference trajectory in the vehicle coordinate system.
+Note: in twiddle method, error is the distance bewteen the vehicle position and the reference trajectory in y direction as below. 
+
+![alt text][image4]
+
+Compare the __absolute__ value of `best_error` and `error`.
 
 
