@@ -34,6 +34,14 @@ int main()
 
   PID pid;
   // TODO: Initialize the pid variable.
+  // initialize all the target parameters to 0.0
+  //std::vector<double> K(3, 0.0);
+  pid.Init(0.0, 0.0, 0.0);
+  pid.prev_cte = 0;
+  pid.int_cte = 0;
+  pid.x = 0;
+  pid.y = 0;
+  pid.orientation = 0;
 
   h.onMessage([&pid](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -57,7 +65,70 @@ int main()
           * NOTE: Feel free to play around with the throttle and speed. Maybe use
           * another PID controller to control the speed!
           */
-          
+          std::cout << "cte = " << cte << std::endl;
+          std::cout << "prev_cte = " << pid.prev_cte << std::endl;
+          std::cout << "int_cte = " << pid.int_cte << std::endl;
+          std::cout << "diff_cte = " << pid.diff_cte << std::endl;
+          std::cout << "speed = " << speed << std::endl;
+          std::cout << "angle = " << angle << std::endl;
+          pid.x += speed * cos(pid.orientation);
+          pid.y += speed * sin(pid.orientation);
+          pid.orientation += angle;
+
+          double best_err = cte;
+          pid.diff_cte = cte - pid.prev_cte;
+          pid.prev_cte = cte;
+          pid.int_cte += cte;
+
+          // take the error at present as the initial value of best error
+
+
+          // create vectors to store the modified coefficients
+          std::vector<double> dK(3, 1.0);
+
+          std::vector<double> K{pid.Kp, pid.Ki, pid.Kd};
+
+          // TWIDDLE to find the best Kp, Ki, Kd
+          double tol = 0.2;  // 0.2
+          int it = 0;
+
+          while (it < 10) {
+            std::cout << "Iteration " << it << ", best error = " << best_err << std::endl;
+            for(int i=0; i<3; ++i) {
+              K[i] += dK[i];
+              pid.Init(K[0], K[1], K[2]);
+              pid.UpdateError(cte);
+              double err = pid.TotalError();
+
+              if(err < best_err) {
+                best_err = err;
+                dK[i] *= 1.1;
+                std::cout << "K+dK, dK*1.1, \t";
+              } else {
+                K[i] -= 2*dK[i];
+                pid.UpdateError(cte);
+
+                if(err < best_err) {
+                  best_err = err;
+                  dK[i] *= 1.1;
+                  std::cout << "K-dK, dK*1.1, \t";
+                } else {
+                  K[i] += dK[i];
+                  dK[i] *= 0.9;
+                  std::cout << "dK*0.9, try K+/- dK again, \t";
+                }
+              }
+              std::cout << "K[" << i <<"] = " << K[i] << std::endl;
+            }
+            it += 1;
+          }
+
+          std::cout << "After " << it << "iteration, ";
+          std::cout << "modified Kp = " << K[0] << ", Ki = " << K[1] << ", Kd = " << K[2] << std::endl;
+          pid.Init(K[0], K[1], K[2]);
+          pid.UpdateError(cte);
+          steer_value = pid.TotalError();
+
           // DEBUG
           std::cout << "CTE: " << cte << " Steering Value: " << steer_value << std::endl;
 

@@ -18,6 +18,20 @@ public:
   double Kd;
 
   /*
+  * Intermediate Variables
+  */
+  double diff_cte;
+  double prev_cte;
+  double int_cte;
+
+  /*
+  * Set Car Coordinate
+  */
+  double x;
+  double y;
+  double orientation;
+
+  /*
   * Constructor
   */
   PID();
@@ -30,7 +44,7 @@ public:
   /*
   * Initialize PID.
   */
-  void Init(double Kp, double Ki, double Kd);
+  void Init(double new_Kp, double new_Ki, double new_Kd);
 
   /*
   * Update the PID error variables given cross track error.
