@@ -1,16 +1,14 @@
 #ifndef PID_H
 #define PID_H
 
-#include <iostream>
-
 class PID {
 public:
   /*
   * Errors
   */
   double p_error;
-  double i_error;
-  double d_error;
+  double i_error;  // integral
+  double d_error;  // direvative
 
   /*
   * Coefficients
@@ -18,22 +16,7 @@ public:
   double Kp;
   double Ki;
   double Kd;
-
-  double prev_cte;
-  double dt;
-
-  /*
-  * Auxiliary variables for TWIDDLE
-  */
-  double dKp;
-  double dKi;
-  double dKd;
-  double best_error;
-  double sum_cte2;
-  int cte_counter;
-  int twiddle_step;
-  int n_run;  // the times for the run
-  bool twiddle_done = true;
+  double p_cte; // previous cte
 
   /*
   * Constructor
@@ -48,19 +31,17 @@ public:
   /*
   * Initialize PID.
   */
-  void Init(double Kp, double Ki, double Kd, bool twiddle);
+  void Init(double Kp, double Ki, double Kd);
 
   /*
   * Update the PID error variables given cross track error.
   */
-  void UpdateError(double cte, double speed);
+  void UpdateError(double cte);
 
   /*
   * Calculate the total PID error.
   */
   double TotalError();
-
-  void Twiddle();
 };
 
 #endif /* PID_H */
