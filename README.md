@@ -56,6 +56,20 @@ number for Ki, don't be surprised if it is as small as 0.0001 or even smaller.
 5. Using the rules of tuning the constants (in the table on the previous page), you can
 change around the constants a little bit to get it working to the best performance.
 
-I final tuning result is `Kp` = 4, `Ki` = 0.002, `Kd` = 0.01. I also reset the `throttle` as 0.2.
+I final tuning result is `Kp` = 4, `Ki` = 0.002, `Kd` = 0.02. I also reset the `throttle` as 0.2.
 
 
+## Throttle
+
+As a common sense, we should slow down vehilce speed when turning sharply. Thus I add the code as below:
+
+```
+double throttle_value = 0.2;
+if(speed > 1) {
+  // decrease speed when steer_value > 5
+  throttle_value = 0.2 * (5 - fabs(steer_value))/5;
+}
+```
+`throttle_value = 0.2 * (5 - fabs(steer_value))/5;` means when steer\_value is bigger than 5 degree, throttle is negative. That is to say vehicle speed will be slowed down when steer_value is more than 5 degree. And the closer the steer value is to 25 degree, the faster the speed is reduced.
+
+Condition `speed > 1` prevents the vehicle stopping or reversing.
